@@ -1,15 +1,33 @@
 # usage: python3 reset_device.py [mac]
 from __future__ import print_function
 import sys
+import yaml
 sys.path.append('/home/rpi5/metawear/MetaWear-SDK-Python')
 from mbientlab.metawear import MetaWear, libmetawear
 from mbientlab.metawear.cbindings import *
 from time import sleep
 from threading import Event
 
+# Load config file
+def load_config(config_file):
+    try:
+        with open(config_file, 'r') as file:
+            return yaml.safe_load(file)
+    except Exception as e:
+        print(f"Error loading config.yaml: {e}")
+        sys.exit(1)
+
 # Connect to device
+print("Loading configuration...")
+config = load_config(sys.argv[1])
+device_address = config.get('device_mac')
+
+if not device_address:
+    print("Error: device_address not found in config.yaml")
+    sys.exit(1)
+
 print("Searching for device...")
-d = MetaWear(sys.argv[1])
+d = MetaWear(device_address)
 d.connect()
 print("Connected to " + d.address + " over " + ("USB" if d.usb.is_connected else "BLE"))
 

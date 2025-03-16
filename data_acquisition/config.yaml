@@ -1,5 +1,11 @@
 device_mac: "C1:FA:C5:EB:4E:F8"
-logging_duration: 10  # in seconds
+
+run_name: "completely_still"
+run_num: 0
+
+time_capture_data: 5 # in seconds
+time_interval_to_print: 5 # in seconds
+
 
 accelerometer:
   enabled: true

@@ -1,12 +1,17 @@
 # usage: python3 raw_data_logger.py [mac] [config_file]
 from __future__ import print_function
 import sys
+import os
 sys.path.append('/home/rpi5/metawear/MetaWear-SDK-Python')
 from mbientlab.metawear import MetaWear, libmetawear, parse_value, create_voidp
 from mbientlab.metawear.cbindings import *
 from time import sleep, strftime
 from threading import Event
 import yaml
+
+sys.stdout.reconfigure(line_buffering=True)  # Python 3.7+
+# OR
+os.environ['PYTHONUNBUFFERED'] = '1'  # Alternative approach
 
 def load_config(config_file):
     with open(config_file, 'r') as f:
@@ -17,6 +22,17 @@ if len(sys.argv) > 2:
     config = load_config(sys.argv[2])
 else:
     config = load_config('config.yaml')  # Default config file
+
+# Create directory for run
+run_name = config.get('run_name', 'default_run')
+run_num = config.get('run_num', 1)
+run_directory = f"{run_name}_{run_num}"
+
+time_capture_data = config.get('time_capture_data', 10)
+time_interval_to_print = config.get('time_interval_to_print', 5)
+
+if not os.path.exists(run_directory):
+    os.makedirs(run_directory)
 
 # Connect to device
 print("Searching for device...")
@@ -31,7 +47,7 @@ e = Event()
 # Callback handlers
 class DataHandler:
     def __init__(self, sensor_name):
-        self.filename = f"{sensor_name}-{strftime('%Y%m%d-%H%M%S')}.csv"
+        self.filename = os.path.join(run_directory, f"{sensor_name}-{strftime('%Y%m%d-%H%M%S')}.csv")
         self.file = None
         self.data_handler_fn = FnVoid_VoidP_DataP(lambda ctx, ptr: self.data_handler(ptr))
         
@@ -51,7 +67,7 @@ try:
     
     # Configure BLE connection
     libmetawear.mbl_mw_settings_set_connection_parameters(d.board, 7.5, 7.5, 0, 6000)
-    sleep(1.0)
+    sleep(3.0)
     
     # Configure sensors based on config file
     acc_config = config.get('accelerometer', {})
@@ -132,8 +148,11 @@ try:
         libmetawear.mbl_mw_mag_bmm150_start(d.board)
     
     # Log for specified duration
-    print("Logging data for 10 seconds...")
-    sleep(10.0)
+    print(f"Logging data for {time_capture_data} seconds...")
+    for i in range(time_capture_data):
+        if i % time_interval_to_print == 0:
+            print(f"{i} seconds are done, {time_capture_data - i} seconds to go")
+        sleep(1.0)
     
     # Stop enabled sensors
     if acc_config.get('enabled', True):
