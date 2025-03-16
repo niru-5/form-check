@@ -1,0 +1,23 @@
+device_mac: "C1:FA:C5:EB:4E:F8"
+
+run_name: "completely_still"
+run_num: 9
+
+time_capture_data: 30 # in seconds
+time_interval_to_print: 5 # in seconds
+
+
+accelerometer:
+  enabled: true
+  odr: 100
+  range: 16
+  
+gyroscope:
+  enabled: true
+  odr: 100
+  range: 2000
+  
+magnetometer:
+  enabled: true
+  odr: 100
+  preset: "REGULAR"  # Could add different presets if needed
