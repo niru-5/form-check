@@ -1,9 +1,9 @@
 device_mac: "C1:FA:C5:EB:4E:F8"
 
 run_name: "completely_still"
-run_num: 0
+run_num: 9
 
-time_capture_data: 5 # in seconds
+time_capture_data: 30 # in seconds
 time_interval_to_print: 5 # in seconds
 
 
