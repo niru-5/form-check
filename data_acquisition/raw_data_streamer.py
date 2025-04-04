@@ -45,6 +45,8 @@ def main():
     run_name = config.get('run_name', 'default_run')
     run_num = config.get('run_num', 1)
     run_directory = f"{run_name}_{run_num}"
+    data_acquisition_mode = config.get('data_acquisition_mode', 'logger')
+    sensor_mode = config.get('sensor_mode', 'raw_data')
 
     if not os.path.exists(run_directory):
         os.makedirs(run_directory)
@@ -56,7 +58,7 @@ def main():
     d.connect()
     print("Connected to " + d.address + " over " + ("USB" if d.usb.is_connected else "BLE"))
 
-    state = State(d, run_directory)
+    state = State(d, run_directory, sensor_mode)
     e = Event()  # Reintroduce the Event object
 
     try:

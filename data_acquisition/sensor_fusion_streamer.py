@@ -1,22 +1,22 @@
 from __future__ import print_function
 import sys
+import os
 sys.path.append("/hdd/side_projects/imu_project/MetaWear-SDK-Python")
 from mbientlab.metawear import MetaWear, libmetawear, parse_value
 from mbientlab.metawear.cbindings import *
 from time import sleep, strftime
 from threading import Event
-import os
 import yaml
 
 def load_config(config_file):
     with open(config_file, 'r') as f:
         return yaml.safe_load(f)
 
-class SensorFusionLogger:
+class SensorFusionStreamer:
     def __init__(self, device_mac, run_directory):
         self.device = MetaWear(device_mac)
         self.run_directory = run_directory
-        self.filename = os.path.join(run_directory, f"sensor_fusion-{strftime('%Y%m%d-%H%M%S')}.csv")
+        self.filename = os.path.join(run_directory, f"sensor_fusion_stream-{strftime('%Y%m%d-%H%M%S')}.csv")
         self.file = None
         self.callback = FnVoid_VoidP_DataP(self.data_handler)
         self.samples = 0
@@ -41,7 +41,7 @@ class SensorFusionLogger:
         # Write configuration
         libmetawear.mbl_mw_sensor_fusion_write_config(self.device.board)
 
-    def start_logging(self, config):
+    def start_streaming(self, config):
         # Determine data type based on config
         data_type = config['sensor_fusion'].get('preset', 'Quaternion').upper()
         if data_type == 'EULER':
@@ -56,6 +56,7 @@ class SensorFusionLogger:
 
     def data_handler(self, ctx, data):
         parsed_data = parse_value(data)
+        print (parsed_data)
         if self.file is None:
             self.file = open(self.filename, 'w')
             
@@ -68,7 +69,7 @@ class SensorFusionLogger:
                 self.file.write(f"{data.contents.epoch},{parsed_data.heading},{parsed_data.pitch},{parsed_data.roll},{parsed_data.yaw}\n")
         self.samples += 1
 
-    def stop_logging(self):
+    def stop_streaming(self):
         libmetawear.mbl_mw_sensor_fusion_stop(self.device.board)
         signal = libmetawear.mbl_mw_sensor_fusion_get_data_signal(self.device.board, SensorFusionData.QUATERNION)
         libmetawear.mbl_mw_datasignal_unsubscribe(signal)
@@ -96,14 +97,14 @@ if __name__ == "__main__":
     if not os.path.exists(run_directory):
         os.makedirs(run_directory)
 
-    logger = SensorFusionLogger(device_mac, run_directory)
+    streamer = SensorFusionStreamer(device_mac, run_directory)
     try:
-        logger.connect()
-        logger.configure(config)
-        logger.start_logging(config)
-        print(f"Logging data for {time_capture_data} seconds...")
+        streamer.connect()
+        streamer.configure(config)
+        streamer.start_streaming(config)
+        print(f"Streaming data for {time_capture_data} seconds...")
         sleep(time_capture_data)
     finally:
-        logger.stop_logging()
-        logger.disconnect()
-        print(f"Total Samples Logged: {logger.samples}")
+        streamer.stop_streaming()
+        streamer.disconnect()
+        print(f"Total Samples Streamed: {streamer.samples}")

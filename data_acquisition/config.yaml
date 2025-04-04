@@ -1,23 +1,35 @@
 device_mac: "C1:FA:C5:EB:4E:F8"
 
-run_name: "data/completely_still"
+run_name: "data/test"
 run_num: 16
 
 time_capture_data: 3 # in seconds
 time_interval_to_print: 1 # in seconds
 
+data_acquisition_mode: "logger" # logger or streamer
+sensor_mode: "sensor_fusion" # sensor_fusion or raw_data
 
+# only enabled if sensor_mode is raw_data
 accelerometer:
   enabled: true
   odr: 100
   range: 16
-  
+
+# only enabled if sensor_mode is raw_data
 gyroscope:
   enabled: true
   odr: 100
   range: 2000
-  
+
+# only enabled if sensor_mode is raw_data 
 magnetometer:
   enabled: true
   odr: 100
   preset: "REGULAR"  # Could add different presets if needed
+
+
+# only enabled if sensor_mode is sensor_fusion
+sensor_fusion:
+  odr: 100
+  preset: "Euler"  # Euler or Quaternion
+
