@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,42 +7,91 @@ import {
   Alert,
   NativeModules,
 } from 'react-native';
+import { useIsFocused, useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-// Import the native module
+// Define the type for the navigation parameters
+type RootStackParamList = {
+  StreamingScreen: { deviceName: string; deviceId: string; newConfig?: { accel: number; gyro: number; mag: number; } };
+  ConfigureScreen: { currentConfig: { accel: number; gyro: number; mag: number; } };
+};
+
+type StreamingScreenNavigationProp = StackNavigationProp<RootStackParamList, 'StreamingScreen'>;
+type StreamingScreenRouteProp = RouteProp<RootStackParamList, 'StreamingScreen'>;
+
 const { MetaWearModule } = NativeModules;
 
-const StreamingScreen = ({ route, navigation }: any) => {
-  const { deviceId, deviceName } = route.params;
+const StreamingScreen = () => {
+  const navigation = useNavigation<StreamingScreenNavigationProp>();
+  const route = useRoute<StreamingScreenRouteProp>();
+  const isFocused = useIsFocused();
 
-  const handleConnect = async () => {
+  const [config, setConfig] = useState({
+    accel: 100,
+    gyro: 100,
+    mag: 25,
+  });
+
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+
+  useEffect(() => {
+    if (route.params?.newConfig) {
+      setConfig(route.params.newConfig);
+    }
+  }, [route.params, isFocused]);
+
+  const handleConnectionToggle = async () => {
     try {
-      const result = await MetaWearModule.connectToDevice(deviceId);
-      Alert.alert('Success', result);
+      if (!isConnected) {
+        // Connect
+        const result = await MetaWearModule.connectToDevice(route.params.deviceId);
+        setIsConnected(true);
+        Alert.alert('Success', result);
+      } else {
+        // Disconnect
+        const result = await MetaWearModule.disconnectDevice();
+        setIsConnected(false);
+        Alert.alert('Disconnected', result);
+      }
     } catch (error) {
       console.error('Connection error:', error);
-      Alert.alert('Error', 'Failed to connect to the MetaWear device');
+      Alert.alert('Error', isConnected ? 'Failed to disconnect' : 'Failed to connect to the MetaWear device');
     }
   };
 
-  const handleDisconnect = async () => {
+  const handleStreamStart = async () => {
     try {
-      const result = await MetaWearModule.disconnectDevice();
-      Alert.alert('Disconnected', result);
-      navigation.goBack(); // Optional: Go back after disconnect
+      const path = await MetaWearModule.startStream({
+        accel: config.accel,
+        gyro: config.gyro,
+        mag: config.mag
+      });
+      setIsStreaming(true);
+      Alert.alert('Streaming', `Saved to: ${path}`);
     } catch (error) {
-      console.error('Disconnect error:', error);
-      Alert.alert('Error', 'Failed to disconnect');
+      console.error(error);
+      Alert.alert('Error', 'Stream failed');
     }
   };
 
-  const handleStreamData = async () => {
+  const handleStreamStop = async () => {
     try {
-      const filePath = await MetaWearModule.streamAccelerometer();
-      Alert.alert('Success', `Data saved at:\n${filePath}`);
+      const result = await MetaWearModule.stopStream();
+      setIsStreaming(false);
+      Alert.alert('Success', result);
     } catch (error) {
-      console.error('Stream error:', error);
-      Alert.alert('Error', 'Failed to stream data');
+      console.error(error);
+      Alert.alert('Error', 'Failed to stop stream and save data');
     }
+  };
+
+  const goToConfigure = () => {
+    navigation.navigate('ConfigureScreen', {
+      currentConfig: config,
+      deviceId: route.params.deviceId,
+      deviceName: route.params.deviceName,
+    });
   };
 
   return (
@@ -50,21 +99,42 @@ const StreamingScreen = ({ route, navigation }: any) => {
       <Text style={styles.title}>Streaming Screen</Text>
 
       <Text style={styles.label}>Device Name:</Text>
-      <Text style={styles.value}>{deviceName || 'Unnamed Device'}</Text>
+      <Text style={styles.value}>{route.params.deviceName || 'Unnamed Device'}</Text>
 
       <Text style={styles.label}>Device ID:</Text>
-      <Text style={styles.value}>{deviceId}</Text>
+      <Text style={styles.value}>{route.params.deviceId}</Text>
+
+      <Text style={styles.label}>Current Config:</Text>
+      <Text>Accelerometer: {config.accel} Hz</Text>
+      <Text>Gyroscope: {config.gyro} Hz</Text>
+      <Text>Magnetometer: {config.mag} Hz</Text>
 
       <View style={styles.buttonContainer}>
-        <Button title="Connect to Device" onPress={handleConnect} />
+        <Button title="Configure Sensors" onPress={goToConfigure} />
       </View>
 
       <View style={styles.buttonContainer}>
-        <Button title="Stream Data (3s)" onPress={handleStreamData} />
+        <Button 
+          title={isConnected ? "Disconnect" : "Connect to Device"} 
+          onPress={handleConnectionToggle}
+          color={isConnected ? "red" : undefined}
+        />
       </View>
 
       <View style={styles.buttonContainer}>
-        <Button title="Disconnect" color="red" onPress={handleDisconnect} />
+        <Button 
+          title="Start Stream" 
+          onPress={handleStreamStart} 
+          disabled={isStreaming || !isConnected}
+        />
+      </View>
+
+      <View style={styles.buttonContainer}>
+        <Button 
+          title="Stop Stream" 
+          onPress={handleStreamStop} 
+          disabled={!isStreaming} 
+        />
       </View>
     </View>
   );
@@ -82,13 +152,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: 'bold',
-    marginBottom: 32,
+    marginBottom: 24,
     textAlign: 'center',
   },
   label: {
     fontSize: 16,
-    color: '#888',
     marginTop: 12,
+    color: '#888',
   },
   value: {
     fontSize: 18,

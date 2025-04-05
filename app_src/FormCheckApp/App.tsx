@@ -8,6 +8,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from './screens/LoginScreen';
 import DeviceListScreen from './screens/DeviceListScreen';
 import StreamingScreen from './screens/StreamingScreen';
+import ConfigureScreen from './screens/ConfigureScreen';
 
 // You can add DeviceListScreen later
 // import DeviceListScreen from './app_src/FormCheckApp/screens/DeviceListScreen';
@@ -21,6 +22,7 @@ function App(): React.JSX.Element {
         <Stack.Screen name="Login" component={LoginScreen} />
         <Stack.Screen name="DeviceList" component={DeviceListScreen} />
         <Stack.Screen name="StreamingScreen" component={StreamingScreen} />
+        <Stack.Screen name="ConfigureScreen" component={ConfigureScreen} />
         {/* Add this later when ready */}
         {/* <Stack.Screen name="DeviceList" component={DeviceListScreen} /> */}
       </Stack.Navigator>
