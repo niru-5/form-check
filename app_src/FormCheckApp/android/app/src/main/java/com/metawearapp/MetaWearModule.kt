@@ -42,6 +42,65 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         }
     }
 
+
+    @ReactMethod
+    fun disconnectDevice(promise: Promise) {
+        try {
+            metawearBoard?.disconnectAsync()?.continueWith {
+                promise.resolve("Disconnected from MetaWear device")
+                null
+            }
+        } catch (e: Exception) {
+            promise.reject("DISCONNECT_FAILED", e)
+        }
+    }
+
+    @ReactMethod
+    fun streamAccelerometer(promise: Promise) {
+        if (metawearBoard == null) {
+            promise.reject("NO_DEVICE", "Not connected to MetaWear")
+            return
+        }
+
+        try {
+            val accel = metawearBoard!!.getModule(com.mbientlab.metawear.module.Accelerometer::class.java)
+            val dataPoints = mutableListOf<String>()
+
+            accel.acceleration().addRouteAsync { source ->
+                source.stream { data, _ ->
+                    val acc = data.value(com.mbientlab.metawear.data.Acceleration::class.java)
+                    val line = "${System.currentTimeMillis()},${acc.x()},${acc.y()},${acc.z()}"
+                    dataPoints.add(line)
+                }
+            }.continueWith {
+                accel.acceleration().start()
+                accel.start()
+
+                // Stop after 3 seconds
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    accel.stop()
+                    accel.acceleration().stop()
+
+                    val fileName = "accelerometer_${System.currentTimeMillis()}.csv"
+                    val file = java.io.File(reactApplicationContext.getExternalFilesDir(null), fileName)
+                    file.printWriter().use { out ->
+                        out.println("timestamp,x,y,z")
+                        dataPoints.forEach { out.println(it) }
+                    }
+
+                    promise.resolve("Data written to: ${file.absolutePath}")
+                }, 3000)
+
+                null
+            }
+        } catch (e: Exception) {
+            promise.reject("STREAM_FAILED", e)
+        }
+    }
+
+
+
+
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         serviceBinder = service as? BtleService.LocalBinder
     }
