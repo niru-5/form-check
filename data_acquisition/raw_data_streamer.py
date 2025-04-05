@@ -18,13 +18,17 @@ def load_config(config_file):
         return yaml.safe_load(f)
 
 class State:
-    def __init__(self, device, run_directory):
+    def __init__(self, device, run_directory, sensor_mode):
         self.device = device
         self.samples = 0
         self.run_directory = run_directory
-        self.acc_handler = self.create_data_handler("accelerometer")
-        self.gyro_handler = self.create_data_handler("gyroscope")
-        self.mag_handler = self.create_data_handler("magnetometer")
+        if sensor_mode == "raw_data":
+            self.acc_handler = self.create_data_handler("accelerometer")
+            self.gyro_handler = self.create_data_handler("gyroscope")
+            self.mag_handler = self.create_data_handler("magnetometer")
+        elif sensor_mode == "sensor_fusion":
+            self.quat_handler = self.create_data_handler("quaternion")
+            self.euler_handler = self.create_data_handler("euler")
         
     def create_data_handler(self, sensor_name):
         filename = os.path.join(self.run_directory, f"{sensor_name}-{strftime('%Y%m%d-%H%M%S')}.csv")
