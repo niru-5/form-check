@@ -1,4 +1,4 @@
-package com.formcheckapp
+package com.metawearapp
 
 import android.app.Application
 import com.facebook.react.PackageList
@@ -11,7 +11,8 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-import com.formcheckapp.MetaWearPackage
+import com.metawearapp.MetaWearPackage
+import com.metawearapp.BuildConfig
 
 
 class MainApplication : Application(), ReactApplication {
