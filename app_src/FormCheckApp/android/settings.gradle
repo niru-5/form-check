@@ -1,6 +1,21 @@
 pluginManagement { includeBuild("../node_modules/@react-native/gradle-plugin") }
 plugins { id("com.facebook.react.settings") }
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_PROJECT)
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://jitpack.io' }
+        ivy {
+            url 'https://mbientlab.com/releases/ivyrep'
+            layout 'gradle'
+        }
+    }
+}
+
 extensions.configure(com.facebook.react.ReactSettingsExtension){ ex -> ex.autolinkLibrariesFromCommand() }
 rootProject.name = 'FormCheckApp'
 include ':app'
 includeBuild('../node_modules/@react-native/gradle-plugin')
+
