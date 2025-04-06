@@ -17,6 +17,9 @@ import com.mbientlab.metawear.module.Accelerometer
 import com.mbientlab.metawear.module.Gyro
 import java.io.File
 import android.util.Log
+import com.amazonaws.auth.BasicAWSCredentials
+import com.amazonaws.services.s3.AmazonS3Client
+import com.amazonaws.services.s3.model.PutObjectRequest
 
 class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext), ServiceConnection {
     private var serviceBinder: BtleService.LocalBinder? = null
@@ -32,6 +35,13 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     private var gyroSampleCount = 0
     private var magSampleCount = 0
     private var isStreamingActive = false
+
+    companion object {
+        private val AWS_ACCESS_KEY = BuildConfig.AWS_ACCESS_KEY
+        private val AWS_SECRET_KEY = BuildConfig.AWS_SECRET_KEY
+        private val BUCKET_NAME = BuildConfig.AWS_BUCKET_NAME
+        private val REGION = BuildConfig.AWS_REGION
+    }
 
     init {
         val intent = Intent(reactApplicationContext, BtleService::class.java)
@@ -288,6 +298,69 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.resolve("Data saved to folder: ${currentFolder?.absolutePath}")
         } catch (e: Exception) {
             promise.reject("STOP_STREAM_FAILED", e)
+        }
+    }
+
+    @ReactMethod
+    fun getLatestDataFolder(promise: Promise) {
+        try {
+            val baseDir = reactApplicationContext.getExternalFilesDir(null)
+            val folders = baseDir?.listFiles { file -> file.isDirectory }
+            
+            if (folders.isNullOrEmpty()) {
+                promise.reject("NO_FOLDERS", "No data folders found")
+                return
+            }
+
+            // Get the most recent folder by sorting based on name (since we use timestamp as folder name)
+            val latestFolder = folders.maxByOrNull { it.name }
+            
+            if (latestFolder != null) {
+                promise.resolve(latestFolder.absolutePath)
+            } else {
+                promise.reject("NO_FOLDERS", "No data folders found")
+            }
+        } catch (e: Exception) {
+            promise.reject("FOLDER_ERROR", e)
+        }
+    }
+
+    @ReactMethod
+    fun uploadToS3(folderPath: String, promise: Promise) {
+        try {
+            val credentials = BasicAWSCredentials(AWS_ACCESS_KEY, AWS_SECRET_KEY)
+            val s3Client = AmazonS3Client(credentials)
+            s3Client.setRegion(com.amazonaws.regions.Region.getRegion(REGION))
+
+            val folder = File(folderPath)
+            if (!folder.exists() || !folder.isDirectory) {
+                promise.reject("FOLDER_ERROR", "Invalid folder path")
+                return
+            }
+
+            // Create a background thread for upload
+            Thread {
+                try {
+                    // Upload each CSV file in the folder
+                    folder.listFiles()?.filter { it.name.endsWith(".csv") }?.forEach { file ->
+                        val key = "data/${folder.name}/${file.name}"
+                        val putRequest = PutObjectRequest(BUCKET_NAME, key, file)
+                        s3Client.putObject(putRequest)
+                    }
+
+                    // Use main thread to resolve the promise
+                    reactApplicationContext.runOnUiQueueThread {
+                        promise.resolve("Successfully uploaded data to S3")
+                    }
+                } catch (e: Exception) {
+                    reactApplicationContext.runOnUiQueueThread {
+                        promise.reject("UPLOAD_ERROR", e)
+                    }
+                }
+            }.start()
+
+        } catch (e: Exception) {
+            promise.reject("S3_ERROR", e)
         }
     }
 

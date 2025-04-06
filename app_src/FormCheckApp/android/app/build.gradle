@@ -72,6 +72,12 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+def getSecret(String key) {
+    def properties = new Properties()
+    properties.load(new FileInputStream(rootProject.file("local.properties")))
+    return properties.getProperty(key)
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -84,6 +90,10 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0"
+        buildConfigField "String", "AWS_ACCESS_KEY", "\"${getSecret("aws.accessKey")}\""
+        buildConfigField "String", "AWS_SECRET_KEY", "\"${getSecret("aws.secretKey")}\""
+        buildConfigField "String", "AWS_BUCKET_NAME", "\"${getSecret("aws.bucketName")}\""
+        buildConfigField "String", "AWS_REGION", "\"${getSecret("aws.region")}\""
     }
     sourceSets {
         main.java.srcDirs += 'src/main/java'
@@ -132,4 +142,7 @@ dependencies {
     } else {
         implementation jscFlavor
     }
+
+    implementation 'com.amazonaws:aws-android-sdk-s3:2.72.0'
+    implementation 'com.amazonaws:aws-android-sdk-mobile-client:2.72.0'
 }

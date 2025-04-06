@@ -35,7 +35,9 @@ const StreamingScreen = () => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const [sampleCounts, setSampleCounts] = useState({ accel: 0, gyro: 0, mag: 0 });
-  const [sampleCountInterval, setSampleCountInterval] = useState<NodeJS.Timer | null>(null);
+  const [sampleCountInterval, setSampleCountInterval] = useState<ReturnType<typeof setInterval> | null>(null);
+  const [showSyncButton, setShowSyncButton] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   useEffect(() => {
     if (route.params?.newConfig) {
@@ -109,10 +111,29 @@ const StreamingScreen = () => {
     try {
       const result = await MetaWearModule.stopStream();
       setIsStreaming(false);
+      setShowSyncButton(true);
       Alert.alert('Success', result);
     } catch (error) {
       console.error(error);
       Alert.alert('Error', 'Failed to stop stream and save data');
+    }
+  };
+
+  const handleSync = async () => {
+    try {
+      setIsSyncing(true);
+      const latestFolder = await MetaWearModule.getLatestDataFolder();
+      
+      // Upload to S3
+      const result = await MetaWearModule.uploadToS3(latestFolder);
+      Alert.alert('Success', result);
+      
+      setShowSyncButton(false);
+    } catch (error) {
+      console.error('Sync error:', error);
+      Alert.alert('Error', 'Failed to sync data to S3');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -127,6 +148,16 @@ const StreamingScreen = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Streaming Screen</Text>
+
+      {showSyncButton && (
+        <View style={styles.syncButtonContainer}>
+          <Button
+            title={isSyncing ? "Syncing..." : "Sync to S3"}
+            onPress={handleSync}
+            disabled={isSyncing}
+          />
+        </View>
+      )}
 
       <Text style={styles.label}>Device Name:</Text>
       <Text style={styles.value}>{route.params.deviceName || 'Unnamed Device'}</Text>
@@ -211,5 +242,11 @@ const styles = StyleSheet.create({
     padding: 10,
     backgroundColor: '#f0f0f0',
     borderRadius: 5,
+  },
+  syncButtonContainer: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    zIndex: 1,
   },
 });
