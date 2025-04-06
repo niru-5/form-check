@@ -34,12 +34,42 @@ const StreamingScreen = () => {
 
   const [isStreaming, setIsStreaming] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
+  const [sampleCounts, setSampleCounts] = useState({ accel: 0, gyro: 0, mag: 0 });
+  const [sampleCountInterval, setSampleCountInterval] = useState<NodeJS.Timer | null>(null);
 
   useEffect(() => {
     if (route.params?.newConfig) {
       setConfig(route.params.newConfig);
     }
   }, [route.params, isFocused]);
+
+  useEffect(() => {
+    if (isStreaming) {
+      // Start polling for sample counts
+      const interval = setInterval(async () => {
+        try {
+          const counts = await MetaWearModule.getSampleCounts();
+          setSampleCounts(counts);
+        } catch (error) {
+          console.error('Failed to get sample counts:', error);
+        }
+      }, 1000); // Update every second
+      setSampleCountInterval(interval);
+    } else {
+      // Clear interval when not streaming
+      if (sampleCountInterval) {
+        clearInterval(sampleCountInterval);
+        setSampleCountInterval(null);
+      }
+      setSampleCounts({ accel: 0, gyro: 0, mag: 0 });
+    }
+
+    return () => {
+      if (sampleCountInterval) {
+        clearInterval(sampleCountInterval);
+      }
+    };
+  }, [isStreaming]);
 
   const handleConnectionToggle = async () => {
     try {
@@ -109,6 +139,15 @@ const StreamingScreen = () => {
       <Text>Gyroscope: {config.gyro} Hz</Text>
       <Text>Magnetometer: {config.mag} Hz</Text>
 
+      {isStreaming && (
+        <View style={styles.sampleCountContainer}>
+          <Text style={styles.label}>Samples Collected:</Text>
+          <Text>Accelerometer: {sampleCounts.accel}</Text>
+          <Text>Gyroscope: {sampleCounts.gyro}</Text>
+          <Text>Magnetometer: {sampleCounts.mag}</Text>
+        </View>
+      )}
+
       <View style={styles.buttonContainer}>
         <Button title="Configure Sensors" onPress={goToConfigure} />
       </View>
@@ -166,5 +205,11 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     marginTop: 20,
+  },
+  sampleCountContainer: {
+    marginTop: 20,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
   },
 });

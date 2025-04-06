@@ -28,6 +28,10 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     private var accelWriter: java.io.PrintWriter? = null
     private var gyroWriter: java.io.PrintWriter? = null
     private var magWriter: java.io.PrintWriter? = null
+    private var accelSampleCount = 0
+    private var gyroSampleCount = 0
+    private var magSampleCount = 0
+    private var isStreamingActive = false
 
     init {
         val intent = Intent(reactApplicationContext, BtleService::class.java)
@@ -72,10 +76,28 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
+    fun getSampleCounts(promise: Promise) {
+        if (!isStreamingActive) {
+            val response = WritableNativeMap().apply {
+                putInt("accel", 0)
+                putInt("gyro", 0)
+                putInt("mag", 0)
+            }
+            promise.resolve(response)
+            return
+        }
+
+        val response = WritableNativeMap().apply {
+            putInt("accel", accelSampleCount)
+            putInt("gyro", gyroSampleCount)
+            putInt("mag", magSampleCount)
+        }
+        promise.resolve(response)
+    }
+
+    @ReactMethod
     fun startStream(config: ReadableMap, promise: Promise) {
         println("METAWEAR_DEBUG: Starting stream")
-        System.out.println("METAWEAR_DEBUG: Starting stream with config: ${config.toString()}")
-        Log.d("METAWEAR_DEBUG", "Starting stream with config: ${config.toString()}")
         
         if (metawearBoard == null) {
             println("METAWEAR_DEBUG: Board is null!")
@@ -83,9 +105,12 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             return
         }
 
-        println("METAWEAR_DEBUG: Board connection state: ${metawearBoard?.isConnected}")
-        
         try {
+            // Reset counters and set streaming state first
+            accelSampleCount = 0
+            gyroSampleCount = 0
+            magSampleCount = 0
+            isStreamingActive = true
 
             // Create timestamp folder
             val timestamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy_MM_dd_HH_mm_ss"))
@@ -183,35 +208,26 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 ?.outputDataRate(magOdr)  // Use proper enum instead of float
                 ?.commit()
 
-
-            
-            // accel?.acceleration()?.addRouteAsync { source ->
-            //     source.stream { data, _ ->
-            //         val acc = data.value(Acceleration::class.java)
-            //         val line = "${System.currentTimeMillis()},${acc.x()},${acc.y()},${acc.z()}"
-            //         accelDataPoints.add(line)
-            //         println("METAWEAR_DEBUG: Accelerometer data: $line")
-            //     }
-            // }?.continueWith { 
-            //     accel?.acceleration()?.start()
-            //     accel?.start()
-            // }
+            // Configure and start accelerometer
             accel?.acceleration()?.addRouteAsync { source ->
                 source.stream { data, _ ->
                     val acc = data.value(Acceleration::class.java)
                     val line = "${System.currentTimeMillis()},${acc.x()},${acc.y()},${acc.z()}"
                     accelWriter?.println(line)
+                    accelSampleCount++
                 }
             }?.continueWith { task ->
                 accel?.acceleration()?.start()
                 accel?.start()
             }
             
+            // Configure and start gyroscope
             gyro?.angularVelocity()?.addRouteAsync { source ->
                 source.stream { data, _ ->
                     val angular = data.value(AngularVelocity::class.java)
                     val line = "${System.currentTimeMillis()},${angular.x()},${angular.y()},${angular.z()}"
                     gyroWriter?.println(line)
+                    gyroSampleCount++
                 }
             }?.continueWith {
                 gyro?.angularVelocity()?.start()
@@ -224,6 +240,7 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     val magnetic = data.value(MagneticField::class.java)
                     val line = "${System.currentTimeMillis()},${magnetic.x()},${magnetic.y()},${magnetic.z()}"
                     magWriter?.println(line)
+                    magSampleCount++
                 }
             }?.continueWith {
                 mag?.magneticField()?.start()
@@ -233,6 +250,7 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.resolve("Started streaming to folder: ${currentFolder?.absolutePath}")
 
         } catch (e: Exception) {
+            isStreamingActive = false // Make sure to reset state on failure
             println("METAWEAR_DEBUG: Stream failed: ${e.message}")
             e.printStackTrace()
             promise.reject("STREAM_FAILED", e)
@@ -241,6 +259,7 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
     @ReactMethod
     fun stopStream(promise: Promise) {
+        isStreamingActive = false
         try {
             // Stop all sensors
             accel?.let {
