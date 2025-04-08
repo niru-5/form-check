@@ -3,6 +3,7 @@ from __future__ import print_function
 import sys
 import os
 sys.path.append('/home/rpi5/metawear/MetaWear-SDK-Python')
+sys.path.append("/hdd/side_projects/imu_project/MetaWear-SDK-Python")
 from mbientlab.metawear import MetaWear, libmetawear, parse_value, create_voidp
 from mbientlab.metawear.cbindings import *
 from time import sleep, strftime

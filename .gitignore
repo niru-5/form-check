@@ -2,3 +2,5 @@ data/*
 *.csv
 *.log
 py_env/*
+*.env
+data_acquisition/.metawear/*
