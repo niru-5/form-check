@@ -17,6 +17,7 @@ import com.mbientlab.metawear.module.Accelerometer
 import com.mbientlab.metawear.module.Gyro
 import java.io.File
 import android.util.Log
+// import com.amazonaws.auth.AWSStaticCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.s3.AmazonS3Client
 import com.amazonaws.services.s3.model.PutObjectRequest
