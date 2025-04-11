@@ -7,7 +7,7 @@ time_capture_data: 3 # in seconds
 time_interval_to_print: 1 # in seconds
 
 data_acquisition_mode: "logger" # logger or streamer
-sensor_mode: "sensor_fusion" # sensor_fusion or raw_data
+sensor_mode: "raw_data" # sensor_fusion or raw_data
 
 # only enabled if sensor_mode is raw_data
 accelerometer:
