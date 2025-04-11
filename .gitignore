@@ -3,4 +3,5 @@ data/*
 *.log
 py_env/*
 *.env
+*.pyc
 data_acquisition/.metawear/*

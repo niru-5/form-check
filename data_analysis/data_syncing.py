@@ -192,13 +192,10 @@ def perform_analysis(config, matches):
 
 def main():
     args = command_line_args()
-    if os.path.exists(args.config):
-        # raise FileNotFoundError(f"Config file {args.config} not found")
+    if not os.path.exists(args.config):
+        raise FileNotFoundError(f"Config file {args.config} not found")
         
-        config = load_config(args.config)
-    else:
-        config = load_config("/hdd/side_projects/imu_project/form-check/data_analysis/data_sync_config.yaml")
-    
+    config = load_config(args.config)
         
     new_garmin_data = download_garmin_data(config)
     new_s3_data = download_s3_data(config)

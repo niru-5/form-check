@@ -7,7 +7,7 @@ garmin_data_folder: "/hdd/side_projects/imu_project/data/garmin_data"
 s3_data_folder: "/hdd/side_projects/imu_project/data/s3_data"
 analysis_data_folder: "/hdd/side_projects/imu_project/data/data_analysis"
 
-perform_analysis: 1
+perform_analysis: 0
 
 
 
