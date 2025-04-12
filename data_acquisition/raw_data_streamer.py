@@ -109,7 +109,7 @@ def main():
         # Magnetometer configuration
         if mag_config.get('enabled', True):
             print("Configuring magnetometer with regular preset")
-            libmetawear.mbl_mw_mag_bmm150_set_preset(d.board, MagBmm150Preset.REGULAR)
+            libmetawear.mbl_mw_mag_bmm150_set_preset(d.board, MagBmm150Preset.ENHANCED_REGULAR)
             
             mag_signal = libmetawear.mbl_mw_mag_bmm150_get_b_field_data_signal(d.board)
             libmetawear.mbl_mw_datasignal_subscribe(mag_signal, None, state.mag_handler)

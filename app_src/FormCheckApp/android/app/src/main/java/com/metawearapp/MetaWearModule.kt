@@ -215,9 +215,9 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             }
 
             mag?.usePreset(com.mbientlab.metawear.module.MagnetometerBmm150.Preset.ENHANCED_REGULAR)  // Using HIGH_ACCURACY preset for best results
-            mag?.configure()
-                ?.outputDataRate(magOdr)  // Use proper enum instead of float
-                ?.commit()
+            // mag?.configure()
+            //     ?.outputDataRate(magOdr)  // Use proper enum instead of float
+            //     ?.commit()
 
             // Configure and start accelerometer
             accel?.acceleration()?.addRouteAsync { source ->
@@ -249,7 +249,7 @@ class MetaWearModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             mag?.magneticField()?.addRouteAsync { source ->
                 source.stream { data, _ ->
                     val magnetic = data.value(MagneticField::class.java)
-                    val line = "${System.currentTimeMillis()},${magnetic.x()},${magnetic.y()},${magnetic.z()}"
+                    val line = "${System.currentTimeMillis()},${magnetic.x()*1_000_000},${magnetic.y()*1_000_000},${magnetic.z()*1_000_000}"
                     magWriter?.println(line)
                     magSampleCount++
                 }
