@@ -1,9 +1,9 @@
 device_mac: "C1:FA:C5:EB:4E:F8"
 
 run_name: "data/test"
-run_num: 17
+run_num: 18
 
-time_capture_data: 3 # in seconds
+time_capture_data: 5 # in seconds
 time_interval_to_print: 1 # in seconds
 
 data_acquisition_mode: "logger" # logger or streamer
