@@ -170,11 +170,11 @@ def get_kalman_orientation(row, kalman_filter):
     return roll, pitch
 
 def process_s3_folder(s3_data_folder, s3_folder):
-    imu_data = []
+    # imu_data = []
     csv_files = sorted([f for f in os.listdir(os.path.join(s3_data_folder, s3_folder)) if f.endswith('.csv') ])
     acc_df = pd.read_csv(os.path.join(os.path.join(s3_data_folder, s3_folder), csv_files[0]))
     gyro_df = pd.read_csv(os.path.join(os.path.join(s3_data_folder, s3_folder), csv_files[1]))
-    mag_df = pd.read_csv(os.path.join(os.path.join(s3_data_folder, s3_folder), csv_files[2]))
+    # mag_df = pd.read_csv(os.path.join(os.path.join(s3_data_folder, s3_folder), csv_files[2]))
     merged_df = pd.merge(acc_df, gyro_df, on='timestamp', how='inner', suffixes=('_acc', '_gyro'))
     Kalman_filter = Kalman()
     merged_df['roll'], merged_df['pitch'] = zip(*merged_df.apply(lambda row: get_kalman_orientation(row, Kalman_filter), axis=1))
