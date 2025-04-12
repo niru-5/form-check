@@ -20,6 +20,7 @@ from datetime import datetime
 # from utils import convert_millis_to_datetime
 from imusensor.filters.kalman import Kalman
 from datetime import datetime
+from collections import deque
 
 # Define vertices and edges for the cube
 # vertices = (
@@ -276,7 +277,7 @@ class SensorFusionStreamer:
             self.file = None
         self.callback = FnVoid_VoidP_DataP(self.data_handler)
         self.samples = 0
-        self.orientation = Queue()
+        self.orientation = deque(maxlen=20)
         self.write_to_file = write_to_file
 
     def connect(self):
@@ -327,7 +328,7 @@ class SensorFusionStreamer:
                 self.file.write("epoch,heading,pitch,roll,yaw\n")
                 self.file.write(f"{data.contents.epoch},{parsed_data.heading},{parsed_data.pitch},{parsed_data.roll},{parsed_data.yaw}\n")
         else:
-            self.orientation.put((parsed_data.heading, parsed_data.roll, parsed_data.pitch, parsed_data.yaw))
+            self.orientation.append((parsed_data.heading, parsed_data.roll, parsed_data.pitch, parsed_data.yaw))
         self.samples += 1
 
     def stop_streaming(self):
@@ -343,7 +344,7 @@ class SensorFusionStreamer:
             self.file.close()
             
     def get_orientation(self):
-        _, roll, pitch, yaw = self.orientation.get()
+        _, roll, pitch, yaw = self.orientation[-1]
         return roll, pitch, yaw
 
 
@@ -430,43 +431,55 @@ def load_config(config_file):
     with open(config_file, 'r') as f:
         return yaml.safe_load(f)
 
+
+def draw_text(x, y, text_string, font, color=(255, 255, 255)):
+    text_surface = font.render(text_string, True, color, (0, 0, 0, 0))
+    text_data = pygame.image.tostring(text_surface, "RGBA", True)
+    width, height = text_surface.get_size()
+
+    # Switch to orthographic projection for 2D text
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    glOrtho(0, 800, 600, 0, -1, 1)
+
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+
+    glEnable(GL_TEXTURE_2D)
+    tex_id = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, tex_id)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0,
+                 GL_RGBA, GL_UNSIGNED_BYTE, text_data)
+
+    glColor4f(1, 1, 1, 1)
+    glBegin(GL_QUADS)
+    glTexCoord2f(0, 1); glVertex2f(x, y)
+    glTexCoord2f(1, 1); glVertex2f(x + width, y)
+    glTexCoord2f(1, 0); glVertex2f(x + width, y + height)
+    glTexCoord2f(0, 0); glVertex2f(x, y + height)
+    glEnd()
+
+    glDeleteTextures([tex_id])
+    glDisable(GL_TEXTURE_2D)
+
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
+
+
+
 def main():
     # Load configuration
     try:
-        config = load_config('config.yaml')
+        config = load_config('/hdd/side_projects/imu_project/form-check/data_acquisition/config.yaml')
     except Exception as e:
         print(f"Error loading config: {str(e)}")
         return
-
-    # Connect to device
-    # print("Searching for device...")
-    # device = None
-    # try:
-    #     device_mac = config.get('device_mac')
-    #     if not device_mac:
-    #         raise ValueError("No device MAC address in config")
-        
-    #     device = MetaWear(device_mac)
-    #     device.connect()
-    #     print(f"Connected to {device.address}")
-    #     print("Waiting for device to stabilize...")
-    #     sleep(2)
-        
-    #     # Check if device is properly connected
-    #     if not device.board:
-    #         raise RuntimeError("Device board not initialized")
-            
-    # except Exception as e:
-    #     print(f"Error connecting to device: {str(e)}")
-    #     if device:
-    #         try:
-    #             device.disconnect()
-    #         except:
-    #             pass
-    #     return
-    
-    # # Initialize state
-    # state = IMUState(device)
     
     streamer = SensorFusionStreamer(config.get('device_mac'), "", False)
     streamer.connect()
@@ -484,49 +497,58 @@ def main():
     
     pygame.init()
     display = (800, 600)
-    # pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-    screen = pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
-    gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
-    glTranslatef(0.0, 0.0, -10)
     
-    text_surface = pygame.Surface(display, pygame.SRCALPHA)
-    font = pygame.font.Font(None, 36)
+    pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+    
+    pygame.font.init()
+    font = pygame.font.SysFont('Arial', 24)
+    
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
+    glTranslatef(0.0, 0.0, -10) 
+    
+    
+    # screen = pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
+    # gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
+    # glTranslatef(0.0, 0.0, -10)
+    
+    # text_surface = pygame.Surface(display, pygame.SRCALPHA)
+    # font = pygame.font.Font(None, 36)
 
-    curr_roll = 0
-    curr_pitch = 90
-    curr_yaw = 0
-    glRotatef(0 - curr_pitch, 0, 1, 0)
-    glRotatef(0 - curr_yaw, 0, 0, 1)
+    # curr_roll = 0
+    # curr_pitch = 90
+    # curr_yaw = 0
+    # glRotatef(0 - curr_pitch, 0, 1, 0)
+    # glRotatef(0 - curr_yaw, 0, 0, 1)
     
     
     curr_time = datetime.now()
     while (datetime.now() - curr_time).total_seconds() < 30:
         roll, pitch, yaw = streamer.get_orientation()
         
-        
-        glRotatef(roll - curr_roll, 1, 0, 0)
-        curr_roll = roll
-
-
-        glRotatef(pitch - curr_pitch, 0, 1, 0)
-        curr_pitch = pitch
-
-        glRotatef(yaw - curr_yaw, 0, 0, 1)
-        curr_yaw = yaw
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glLoadIdentity()
+        # gluPerspective(45, (display[0] / display[1]), 0.1, 50.0)
+        glTranslatef(0.0, 0.0, -10)
+        
+        glRotatef(roll, 1, 0, 0)
+        glRotatef(pitch, 0, 1, 0)
+        glRotatef(yaw, 0, 0, 1)
+
+        
         draw_cube()
         print(f"Roll: {roll}, Pitch: {pitch}, Yaw: {yaw}")
+        y_pos = 10
+        for label, value in [("Roll", roll), ("Pitch", pitch), ("Yaw", yaw)]:
+            draw_text(600, y_pos, f"{label}: {value:.1f}°", font, color=(255, 255, 255))
+            y_pos += 40
         
-        # y_pos = 10
-        # for label, value in [("Roll", state.curr_roll), 
-        #                     ("Pitch", state.curr_pitch), 
-        #                     ("Yaw", state.curr_yaw)]:
-        #     text = font.render(f"{label}: {value:.1f}°", True, (0, 0, 0))
-        #     text_surface.blit(text, (display[0] - 200, y_pos))
-        #     y_pos += 30
-        
+        # Blit text surface onto screen
         # screen.blit(text_surface, (0, 0))
+        
         pygame.display.flip()
         pygame.time.wait(10)
         
