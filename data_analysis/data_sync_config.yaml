@@ -1,0 +1,13 @@
+garmin_env_file: "/hdd/side_projects/imu_project/env.json"
+s3_env_file: "/hdd/side_projects/imu_project/form-check/aws.env"
+
+intervals_icu_base_url: "https://intervals.icu/api/v1"
+
+garmin_data_folder: "/hdd/side_projects/imu_project/data/garmin_data"
+s3_data_folder: "/hdd/side_projects/imu_project/data/s3_data"
+analysis_data_folder: "/hdd/side_projects/imu_project/data/data_analysis"
+
+perform_analysis: 0
+
+
+

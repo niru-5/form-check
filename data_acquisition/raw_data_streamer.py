@@ -18,17 +18,13 @@ def load_config(config_file):
         return yaml.safe_load(f)
 
 class State:
-    def __init__(self, device, run_directory, sensor_mode):
+    def __init__(self, device, run_directory):
         self.device = device
         self.samples = 0
         self.run_directory = run_directory
-        if sensor_mode == "raw_data":
-            self.acc_handler = self.create_data_handler("accelerometer")
-            self.gyro_handler = self.create_data_handler("gyroscope")
-            self.mag_handler = self.create_data_handler("magnetometer")
-        elif sensor_mode == "sensor_fusion":
-            self.quat_handler = self.create_data_handler("quaternion")
-            self.euler_handler = self.create_data_handler("euler")
+        self.acc_handler = self.create_data_handler("accelerometer")
+        self.gyro_handler = self.create_data_handler("gyroscope")
+        self.mag_handler = self.create_data_handler("magnetometer")
         
     def create_data_handler(self, sensor_name):
         filename = os.path.join(self.run_directory, f"{sensor_name}-{strftime('%Y%m%d-%H%M%S')}.csv")
@@ -49,8 +45,6 @@ def main():
     run_name = config.get('run_name', 'default_run')
     run_num = config.get('run_num', 1)
     run_directory = f"{run_name}_{run_num}"
-    data_acquisition_mode = config.get('data_acquisition_mode', 'logger')
-    sensor_mode = config.get('sensor_mode', 'raw_data')
 
     if not os.path.exists(run_directory):
         os.makedirs(run_directory)
@@ -62,7 +56,7 @@ def main():
     d.connect()
     print("Connected to " + d.address + " over " + ("USB" if d.usb.is_connected else "BLE"))
 
-    state = State(d, run_directory, sensor_mode)
+    state = State(d, run_directory)
     e = Event()  # Reintroduce the Event object
 
     try:
@@ -115,7 +109,7 @@ def main():
         # Magnetometer configuration
         if mag_config.get('enabled', True):
             print("Configuring magnetometer with regular preset")
-            libmetawear.mbl_mw_mag_bmm150_set_preset(d.board, MagBmm150Preset.REGULAR)
+            libmetawear.mbl_mw_mag_bmm150_set_preset(d.board, MagBmm150Preset.ENHANCED_REGULAR)
             
             mag_signal = libmetawear.mbl_mw_mag_bmm150_get_b_field_data_signal(d.board)
             libmetawear.mbl_mw_datasignal_subscribe(mag_signal, None, state.mag_handler)

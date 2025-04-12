@@ -1,13 +1,13 @@
 device_mac: "C1:FA:C5:EB:4E:F8"
 
 run_name: "data/test"
-run_num: 16
+run_num: 18
 
-time_capture_data: 3 # in seconds
+time_capture_data: 5 # in seconds
 time_interval_to_print: 1 # in seconds
 
 data_acquisition_mode: "logger" # logger or streamer
-sensor_mode: "sensor_fusion" # sensor_fusion or raw_data
+sensor_mode: "raw_data" # sensor_fusion or raw_data
 
 # only enabled if sensor_mode is raw_data
 accelerometer:
