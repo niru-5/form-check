@@ -198,6 +198,8 @@ def main():
     for index, row in df_high.iterrows():
         if index < 100:
             continue
+        if index >= len(df_low) or index >= len(df_medium):
+            break
         roll_high =  common_roll  #row['roll']
         pitch_high = common_pitch # row['pitch']
         yaw_high = row['roll']
