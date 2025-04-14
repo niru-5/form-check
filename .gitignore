@@ -5,3 +5,4 @@ py_env/*
 *.env
 *.pyc
 data_acquisition/.metawear/*
+.metawear/*

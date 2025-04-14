@@ -1,0 +1,28 @@
+data_acquisition_type: stream_to_file # stream_to_file, logger_to_file, write_to_queue
+
+device_mac: "C1:FA:C5:EB:4E:F8"
+
+run_name: "testing"
+
+
+sensor_settings:
+  accelerometer:
+    enabled: true
+    odr: 100 # 1, 10, 20, 50, 100, 200, 400, 800, 1600
+    range: 16 # 2, 4, 8, 16
+  gyroscope:
+    enabled: true
+    odr: 100 # 1, 10, 20, 50, 100, 200, 400, 800, 1600
+    range: 2000 # 250, 500, 1000, 2000
+  magnetometer:
+    enabled: true
+    odr: 25
+    preset: "REGULAR" # REGULAR, HIGH_ACCURACY, LOW_POWER, ULTRA_LOW_POWER
+  # sample_rate is always fixed at 100 Hz
+
+# only used if data_acquisition_type is logger_to_file or stream_to_file
+run_directory: "/hdd/side_projects/imu_project/form-check/data"
+
+# only used if data_acquisition_type is write_to_queue
+data_queue_length: 100
+

@@ -1,0 +1,20 @@
+data_acquisition_type: stream_to_file # stream_to_file, logger_to_file, write_to_queue
+
+device_mac: "C1:FA:C5:EB:4E:F8"
+
+run_name: "testing"
+
+
+
+sensor_settings:
+  accel_range: 16
+  gyro_range: 2000
+  data_type: "euler" # or "quaternion"
+  fusion_mode: "ndof" # or "imu_plus" or "compass" or "m4g"
+  # sample_rate is always fixed at 100 Hz
+
+# only used if data_acquisition_type is logger_to_file or stream_to_file
+run_directory: "/hdd/side_projects/imu_project/form-check/data"
+
+# only used if data_acquisition_type is write_to_queue
+data_queue_length: 100
